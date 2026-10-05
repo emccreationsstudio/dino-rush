@@ -1,0 +1,225 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#07131f;color:#f4fbff}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Dino Rush</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Baloo+2:wght@500;700;800&display=swap">
+<style>
+/* Düzen: tam ekran 3D oyun; menüler ve gösterge (HUD) cam paneller halinde üstte. Tek, oyun dünyasına ait koyu görünüm. */
+:root {
+  --ink: #1b0f08;          /* logo kontur / koyu toprak */
+  --amber: #ffb12e;        /* logo turuncu-sarı */
+  --ember: #ff6a1a;        /* düğme turuncusu */
+  --ice: #bfeaff;          /* buz mavisi */
+  --deep: #07131f;         /* gece gökyüzü */
+  --leaf: #4fd27a;         /* yeşil (kilidi açık) */
+  --panel: rgba(8, 22, 36, 0.78);
+  --line: rgba(191, 234, 255, 0.28);
+  --text: #f4fbff;
+  --dim: rgba(244, 251, 255, 0.68);
+  --display: "Luckiest Guy", "Futura-CondensedExtraBold", "Arial Rounded MT Bold", "Arial Black", Impact, sans-serif;
+  --body: "Baloo 2", ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; background: var(--deep); color: var(--text); font-family: var(--body); overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
+canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+button { font-family: var(--body); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button:focus-visible { outline: 3px solid var(--ice); outline-offset: 3px; }
+
+.layer { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); gap: 14px; text-align: center; z-index: 5; }
+.layer.dim { background: radial-gradient(ellipse at 50% 40%, rgba(7,19,31,.35), rgba(7,19,31,.88)); }
+
+/* Logo: kapaktaki gibi kalın, turuncu-sarı, koyu konturlu */
+.logo { font-family: var(--display); line-height: .82; letter-spacing: .02em; margin: 0;
+  font-size: clamp(64px, 17vw, 132px); text-transform: none; display: flex; flex-direction: column; align-items: center; }
+.logo span { display: block; background: linear-gradient(#ffe36a, var(--amber) 45%, var(--ember)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-stroke: 3px var(--ink); filter: drop-shadow(0 6px 0 var(--ink)) drop-shadow(0 10px 18px rgba(0,0,0,.5)); }
+.logo span:first-child { background: linear-gradient(#9be7ff, #36b6ff 50%, #1677d6); -webkit-background-clip: text; background-clip: text; transform: rotate(-3deg); }
+.title-layer { justify-content: flex-start; z-index: 5; padding-top: max(48px, env(safe-area-inset-top)); padding-bottom: max(40px, env(safe-area-inset-bottom));
+  background: linear-gradient(rgba(7,19,31,.55), rgba(7,19,31,0) 38%, rgba(7,19,31,0) 62%, rgba(7,19,31,.6)); }
+.title-layer .spacer { flex: 1; }
+.tag { font-size: clamp(15px, 4vw, 19px); color: var(--ice); max-width: 30ch; margin: 0; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+
+.btn { font-family: var(--display); font-size: clamp(22px, 6vw, 30px); letter-spacing: .04em; color: #fff; border: 0; border-radius: 18px;
+  padding: 14px 34px 10px; background: linear-gradient(#ffb341, var(--ember)); box-shadow: 0 6px 0 #9c3a08, 0 12px 24px rgba(0,0,0,.4);
+  text-shadow: 0 2px 0 rgba(0,0,0,.35); transition: transform .08s, box-shadow .08s; }
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #9c3a08, 0 6px 14px rgba(0,0,0,.4); }
+.btn.ghost { background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 2px var(--line); font-size: 18px; padding: 10px 22px 7px; }
+.btn.small { font-size: 18px; padding: 10px 20px 7px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 18px; backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); max-width: 560px; width: 100%; box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+.panel h2 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 7vw, 36px); margin: 0 0 6px; color: var(--amber); letter-spacing: .03em;
+  -webkit-text-stroke: 1px var(--ink); text-wrap: balance; }
+.panel p { margin: 0; color: var(--dim); font-size: 16px; line-height: 1.45; }
+
+/* Hikâye */
+.story-art { font-size: 64px; line-height: 1; margin: 6px 0 10px; }
+.dots { display: flex; gap: 6px; justify-content: center; margin-top: 14px; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.dots i.on { background: var(--amber); }
+
+/* Harita */
+.map { display: grid; gap: 10px; width: 100%; max-width: 560px; }
+.stage { display: grid; grid-template-columns: 54px 1fr auto; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border-radius: 18px;
+  border: 1px solid var(--line); background: rgba(8,22,36,.86); color: var(--text); width: 100%; }
+.stage .n { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 28px; background: rgba(255,255,255,.08); }
+.stage b { display: block; font-size: 18px; }
+.stage small { color: var(--dim); font-size: 13px; }
+.stage .st { font-size: 15px; color: var(--amber); white-space: nowrap; }
+.stage.open { border-color: rgba(255,177,46,.8); background: linear-gradient(90deg, rgba(120,62,8,.92), rgba(8,22,36,.9)); }
+.stage.locked { color: rgba(244,251,255,.5); }
+.stage.locked .st { color: rgba(255,177,46,.5); }
+
+/* Karakter seçimi */
+.chars { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; width: 100%; max-width: 640px; }
+.char { border-radius: 18px; padding: 12px; border: 2px solid var(--line); background: rgba(8,22,36,.86); color: var(--text); text-align: left; }
+.char.sel { border-color: var(--amber); background: rgba(110,56,8,.92); }
+.char.locked { color: rgba(244,251,255,.5); }
+.char b { font-size: 17px; display: block; }
+.char small { color: var(--dim); font-size: 12.5px; display: block; line-height: 1.35; margin-top: 2px; }
+.stat { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); margin-top: 4px; }
+.stat i { height: 6px; border-radius: 6px; background: rgba(255,255,255,.12); position: relative; overflow: hidden; }
+.stat i::after { content: ""; position: absolute; inset: 0; width: var(--v); background: linear-gradient(90deg, var(--amber), var(--ember)); border-radius: 6px; }
+
+/* Gösterge (HUD) */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
+.top { position: absolute; left: 0; right: 0; top: 0; padding: max(10px, env(safe-area-inset-top)) 12px 0; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
+.hearts { font-size: 22px; letter-spacing: 1px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+.prog { height: 12px; border-radius: 12px; background: rgba(0,0,0,.35); border: 1px solid var(--line); position: relative; }
+.prog .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 12px; background: linear-gradient(90deg, #7fd6ff, #fff); }
+.prog .cp { position: absolute; top: -3px; width: 3px; height: 16px; background: rgba(255,255,255,.55); border-radius: 2px; }
+.prog .me { position: absolute; top: 50%; transform: translate(-50%, -50%); font-size: 20px; }
+.prog .goal { position: absolute; right: -6px; top: 50%; transform: translateY(-50%); font-size: 18px; }
+.pause { pointer-events: auto; width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 18px; }
+.stats { position: absolute; top: calc(max(10px, env(safe-area-inset-top)) + 50px); left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.pill { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-weight: 800; font-size: 17px; display: inline-flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+.buffs { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.buff { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px 3px 6px; font-size: 13px; font-weight: 700; display: flex; gap: 6px; align-items: center; }
+.buff .bar { width: 46px; height: 5px; border-radius: 5px; background: rgba(255,255,255,.15); overflow: hidden; }
+.buff .bar i { display: block; height: 100%; background: var(--amber); }
+.ability { position: absolute; right: 16px; bottom: max(18px, env(safe-area-inset-bottom)); width: 84px; height: 84px; border-radius: 50%; pointer-events: auto;
+  border: 0; background: conic-gradient(var(--amber) var(--p, 100%), rgba(255,255,255,.12) 0); padding: 5px; box-shadow: 0 8px 20px rgba(0,0,0,.45); }
+.ability span { width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(#ff8a2a, #c43b07); display: grid; place-items: center; font-size: 30px; color: #fff; }
+.ability.glow { animation: glow .5s ease-in-out infinite alternate; }
+@keyframes glow { from { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,177,46,.9); } to { transform: scale(1.12); box-shadow: 0 0 0 14px rgba(255,177,46,0); } }
+.ability.cool span { background: #3a2a22; filter: grayscale(.6); }
+.ability b { position: absolute; left: 50%; bottom: -16px; transform: translateX(-50%); font-size: 11px; letter-spacing: .06em; white-space: nowrap; text-shadow: 0 1px 3px #000; }
+.hint { position: absolute; left: 50%; top: calc(max(12px, env(safe-area-inset-top)) + 96px); text-align: center; white-space: nowrap; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 16px; padding: 8px 14px; font-size: 14px; color: var(--dim); max-width: calc(100% - 32px); transition: opacity .6s; }
+.toast { position: absolute; left: 50%; top: 32%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(28px, 8vw, 46px); color: var(--amber);
+  -webkit-text-stroke: 2px var(--ink); text-shadow: 0 4px 0 var(--ink); white-space: nowrap; opacity: 0; transition: opacity .25s, transform .25s; letter-spacing: .03em; }
+.toast.show { opacity: 1; transform: translate(-50%, -60%); }
+.flash { position: fixed; inset: 0; background: rgba(255,60,40,.35); opacity: 0; pointer-events: none; z-index: 3; transition: opacity .3s; }
+.stars { font-size: 46px; letter-spacing: 4px; }
+.unlock { margin-top: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(79,210,122,.16); border: 1px solid rgba(79,210,122,.6); color: #c9ffd9; font-weight: 700; }
+.mute { position: fixed; left: 12px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 6; width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 18px; }
+[hidden] { display: none !important; }
+.vignette { position: fixed; inset: 0; pointer-events: none; z-index: 2; background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(4,16,30,.38) 100%); }
+#scr-load { background: radial-gradient(ellipse at 50% 40%, #1b4c7a, var(--deep)); z-index: 9; }
+.loadbar { width: min(280px, 70vw); height: 12px; border-radius: 12px; background: rgba(255,255,255,.12); border: 1px solid var(--line); overflow: hidden; }
+.loadbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--amber), var(--ember)); transition: width .2s; }
+/* karakter seçimi: dinozor üstte 3D görünsün, kartlar altta */
+#scr-chars { justify-content: space-between; background: linear-gradient(rgba(7,19,31,.5), rgba(7,19,31,0) 30%, rgba(7,19,31,0) 45%, rgba(7,19,31,.85) 70%); }
+#scr-chars .bottom { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; max-width: 640px; }
+.chars .char.mini { padding: 8px 12px; }
+.chars .char.mini small { display: none; }
+#scr-chars .chars { grid-template-columns: 1fr 1fr; }
+#scr-chars .char.mini { grid-column: span 1; font-size: 14px; }
+#scr-chars .char.mini b { font-size: 14px; }
+#scr-chars .chars .char.mini:last-child { grid-column: span 2; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+
+<canvas id="c" aria-label="Dino Rush oyun alanı"></canvas>
+<div class="vignette"></div>
+<div class="flash" id="flash"></div>
+
+<!-- Yükleme -->
+<section class="layer" id="scr-load">
+  <h1 class="logo"><span>DINO</span><span>RUSH</span></h1>
+  <div class="loadbar"><i id="load-bar"></i></div>
+  <p class="tag" id="load-msg">Dinozorlar uyanıyor…</p>
+</section>
+
+<!-- Başlık -->
+<section class="layer title-layer" id="scr-title" hidden>
+  <h1 class="logo"><span>DINO</span><span>RUSH</span></h1>
+  <p class="tag">Deprem kıtayı ikiye böldü. Yavru dinozorları vadiye, ailelerine ulaştır!</p>
+  <div class="spacer"></div>
+  <div class="row">
+    <button class="btn" id="b-play">OYNA</button>
+  </div>
+  <button class="btn ghost" id="b-story">Hikâye</button>
+</section>
+
+<!-- Hikâye -->
+<section class="layer dim" id="scr-story" hidden>
+  <div class="panel">
+    <div class="story-art" id="story-art">🌋</div>
+    <h2 id="story-h"></h2>
+    <p id="story-p"></p>
+    <div class="dots" id="story-dots"></div>
+    <div class="row" style="margin-top:16px"><button class="btn small" id="b-story-next">İleri</button></div>
+  </div>
+</section>
+
+<!-- Harita -->
+<section class="layer dim" id="scr-map" hidden>
+  <div class="panel" style="padding:14px 16px"><h2 style="margin:0">Eve Dönüş Yolu</h2><p>Kutuplardan vadiye beş durak. Her durakta yeni bir dinozor arkadaş seni bekliyor.</p></div>
+  <div class="map" id="map"></div>
+  <button class="btn ghost" id="b-map-back">Geri</button>
+</section>
+
+<!-- Karakter seçimi -->
+<section class="layer" id="scr-chars" hidden>
+  <div class="panel" style="padding:12px 16px"><h2 style="margin:0">Dinozorunu Seç</h2><p id="char-desc">Kim koşacak?</p></div>
+  <div class="bottom">
+    <div class="chars" id="chars"></div>
+    <div class="row"><button class="btn ghost" id="b-chars-back">Geri</button><button class="btn" id="b-go">KOŞ!</button></div>
+  </div>
+</section>
+
+<!-- Gösterge -->
+<div id="hud" hidden>
+  <div class="top">
+    <div class="hearts" id="hearts">❤️❤️❤️</div>
+    <div class="prog" id="prog"><div class="fill" id="prog-fill"></div><span class="me" id="prog-me">🦖</span><span class="goal">🏁</span></div>
+    <button class="pause" id="b-pause" aria-label="Duraklat">❚❚</button>
+  </div>
+  <div class="stats">
+    <span class="pill">🍓 <span id="food">0</span></span>
+    <div class="buffs" id="buffs"></div>
+  </div>
+  <button class="ability" id="b-ability" aria-label="Özel güç"><span id="ab-icon">🚀</span><b id="ab-name">SPRİNT</b></button>
+  <div class="hint" id="hint">Kaydır: ← → şerit · ↑ zıpla · ↓ kay<br>Çift dokun: <span id="hint-ab">Sprint</span></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- Duraklat -->
+<section class="layer dim" id="scr-pause" hidden>
+  <div class="panel"><h2>Mola</h2><p>Mamutlar da biraz soluklanıyor.</p>
+    <div class="row" style="margin-top:14px"><button class="btn small" id="b-resume">Devam</button><button class="btn ghost" id="b-quit">Haritaya dön</button></div></div>
+</section>
+
+<!-- Yakalandın -->
+<section class="layer dim" id="scr-over" hidden>
+  <div class="panel"><div class="story-art">🦣</div><h2>Mamutlar yetişti!</h2><p id="over-p">Ama pes etmek yok. Son kontrol noktasından devam edebilirsin.</p>
+    <div class="row" style="margin-top:14px"><button class="btn small" id="b-continue">Kontrol noktasından devam</button><button class="btn ghost" id="b-restart">Baştan başla</button></div></div>
+</section>
+
+<!-- Bölüm sonu -->
+<section class="layer dim" id="scr-win" hidden>
+  <div class="panel"><h2>Kıyıya ulaştın!</h2>
+    <div class="stars" id="win-stars">★★★</div>
+    <p id="win-p"></p>
+    <div class="unlock" id="win-unlock" hidden></div>
+    <div class="row" style="margin-top:14px"><button class="btn small" id="b-win-map">Haritaya dön</button><button class="btn ghost" id="b-win-again">Tekrar koş</button></div></div>
+</section>
+
+<button class="mute" id="b-mute" aria-label="Sesi aç/kapat">🔊</button>
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js", "three/addons/": "./lib/addons/" } }</script>
+<script type="module" src="js/game.js"></script>
+
+</body></html>

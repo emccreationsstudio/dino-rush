@@ -1,0 +1,35 @@
+# Codemagic: Dino Rush'ı derler, imzalar ve TestFlight'a yükler.
+workflows:
+  ios-testflight:
+    name: Dino Rush — TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: SesAcma
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.emccreationsstudio.DinoRush
+      xcode: latest
+    triggering:
+      events: []
+    scripts:
+      - name: XcodeGen kur
+        script: which xcodegen || brew install xcodegen
+      - name: Derleme numarası
+        script: |
+          sed -i '' "s/CURRENT_PROJECT_VERSION: \"1\"/CURRENT_PROJECT_VERSION: \"$BUILD_NUMBER\"/" project.yml
+          grep CURRENT_PROJECT_VERSION project.yml
+      - name: Xcode projesini üret
+        script: xcodegen generate
+      - name: İmzalama profillerini uygula
+        script: xcode-project use-profiles
+      - name: Uygulamayı paketle (.ipa)
+        script: xcode-project build-ipa --project DinoRush.xcodeproj --scheme DinoRush
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
