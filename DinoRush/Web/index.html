@@ -486,6 +486,54 @@ body[data-lv="1"] .energy .ico { font-size: 0; width: 120%; aspect-ratio: 155 / 
 body[data-lv="1"] .energy .num { bottom: auto; top: 101%; font-size: 28px; line-height: 1; letter-spacing: .02em;
   background: linear-gradient(180deg, #ffffff 0%, #eaf6ff 45%, #b9dcf5 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
   -webkit-text-stroke: 0; filter: drop-shadow(0 0 1px #0d2a58) drop-shadow(0 0 1px #0d2a58) drop-shadow(0 0 1px #0d2a58) drop-shadow(0 2px 0 #0d2a58) drop-shadow(0 0 6px rgba(90,200,255,.85)); }
+
+/* ===== v12: ilerleme çubuğu düzeltmesi + yüksek çözünürlüklü enerji ibresi (gauge2_*) ===== */
+body[data-lv="1"] .prog .trk { right: 66px; }
+body[data-lv="1"] .prog .me { z-index: 4; width: 44px; height: 44px; line-height: 0; }
+.prog .me img { max-width: none !important; flex: none; }
+/* çerçeve 330×1545: tüp x %31.8–%71.5, y %4.53–%91.65; işaretler tüpün %42.9 ve %10.4'ünde */
+body[data-lv="1"] .energy { aspect-ratio: 330 / 1545; height: min(42vh, 320px); right: 6px;
+  background: url(img/hud/gauge2_frame.png) center / 100% 100% no-repeat; }
+body[data-lv="1"] .energy .tube { inset: 4.53% 28.5% 8.35% 31.8%; border-radius: 999px; background: none; overflow: hidden; }
+body[data-lv="1"] .energy .fill, body[data-lv="1"] .energy.low .fill, body[data-lv="1"] .energy.crit .fill {
+  border-radius: 999px 999px 0 0; background: url(img/hud/gauge2_fill.jpg) center bottom / 100% var(--th, 280px) no-repeat;
+  box-shadow: inset 0 4px 3px -2px rgba(255,255,255,.75), 0 -2px 10px rgba(150,255,90,.55); transition: height .25s, filter .3s; }
+body[data-lv="1"] .energy.low .fill { filter: hue-rotate(-62deg) saturate(1.35) brightness(1.08); }
+body[data-lv="1"] .energy.crit .fill { filter: hue-rotate(-100deg) saturate(1.6); }
+body[data-lv="1"] .energy .mark, body[data-lv="1"] .energy .mark.stop { left: 1.5% !important; right: auto; width: 97.6%; height: 4.27%; aspect-ratio: auto; transform: none;
+  bottom: auto !important; top: 52.1%; background: url(img/hud/gauge2_mark_gold.png) center / 100% 100% no-repeat; }
+body[data-lv="1"] .energy .mark.stop { top: 80.6%; height: 4.01%; background-image: url(img/hud/gauge2_mark_red.png); }
+body[data-lv="1"] .energy .ico { width: 100%; bottom: 92.5%; left: 52%; }
+body[data-lv="1"] .energy .num { top: 99%; font-size: 30px; text-align: center; }
+body[data-lv="1"] .energy .num::before { content: "ENERJİ"; display: block; font-size: 12px; letter-spacing: .06em; margin-bottom: 1px; }
+
+/* ===== yeni dinozor açıldı ekranı ===== */
+#scr-unlock .panel.big { padding-top: 70px; text-align: center; }
+#scr-unlock h2 { font-size: clamp(30px, 8.5vw, 50px); margin: 4px 0 6px; }
+#scr-unlock .stars { transform: scale(.8); margin: -8px 0 -6px; }
+.un-stage { position: relative; width: min(58vw, 250px); aspect-ratio: 1; margin: 6px auto 4px; }
+.un-stage::before { content: ""; position: absolute; inset: -14%; border-radius: 50%; opacity: 0; transition: opacity .6s;
+  background: radial-gradient(circle, rgba(140,220,255,.95) 0%, rgba(60,160,255,.55) 38%, rgba(60,160,255,0) 70%); }
+.un-stage.on::before { opacity: 1; animation: unspin 6s linear infinite; }
+.un-stage::after { content: ""; position: absolute; inset: -22%; border-radius: 50%; opacity: 0; transition: opacity .6s;
+  background: repeating-conic-gradient(from 0deg, rgba(255,255,255,.45) 0 6deg, rgba(255,255,255,0) 6deg 24deg);
+  -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%); mask: radial-gradient(circle, #000 30%, transparent 70%); }
+.un-stage.on::after { opacity: .9; animation: unspin 14s linear infinite reverse; }
+@keyframes unspin { to { transform: rotate(360deg); } }
+.un-stage img, .un-stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; z-index: 1;
+  border: 5px solid #fff; box-shadow: 0 0 0 4px #2a7fd6, 0 8px 24px rgba(0,30,80,.55); }
+.un-stage img { filter: brightness(0) saturate(0); transform: scale(.82); transition: filter 1s ease, transform .9s cubic-bezier(.2,1.6,.4,1); }
+.un-stage.on img { filter: none; transform: scale(1); }
+.un-lock { position: absolute; left: 50%; top: 50%; z-index: 2; font-size: 64px; transform: translate(-50%, -50%); transition: transform .5s, opacity .5s; }
+.un-stage.shake .un-lock { animation: unshake .12s linear 5; }
+.un-stage.on .un-lock { transform: translate(-50%, -50%) scale(2.2) rotate(25deg); opacity: 0; }
+@keyframes unshake { 0%,100% { transform: translate(-50%, -50%) rotate(0); } 25% { transform: translate(-56%, -50%) rotate(-12deg); } 75% { transform: translate(-44%, -50%) rotate(12deg); } }
+#un-name { font-size: clamp(26px, 7vw, 40px); margin: 6px 0 2px; opacity: 0; transform: translateY(10px); transition: opacity .5s .3s, transform .5s .3s; }
+#un-p { opacity: 0; transition: opacity .5s .5s; }
+#b-un-go { opacity: 0; pointer-events: none; transition: opacity .4s; margin-top: 8px; }
+#scr-unlock.done #un-name { opacity: 1; transform: none; }
+#scr-unlock.done #un-p { opacity: 1; }
+#scr-unlock.done #b-un-go { opacity: 1; pointer-events: auto; }
 </style>
 
 <canvas id="c" aria-label="Dino Rush oyun alanı"></canvas>
@@ -593,6 +641,16 @@ body[data-lv="1"] .energy .num { bottom: auto; top: 101%; font-size: 28px; line-
     <p id="win-p"></p>
     <div class="unlock" id="win-unlock" hidden></div>
     <div class="row2"><button class="btn wide" id="b-win-map">Haritaya dön</button><button class="btn ghost wide" id="b-win-again">Tekrar koş</button><button class="btn wide" id="b-win-next" hidden>Sonraki bölüm ▸</button></div></div>
+</section>
+
+<section class="layer dim win-layer" id="scr-unlock" hidden>
+  <div class="panel big"><span class="snowcap"></span><span class="icicles"></span>
+    <div class="stars" id="un-stars"></div>
+    <h2 class="fx">YENİ DİNOZOR AÇILDI!</h2>
+    <div class="un-stage" id="un-stage"><img id="un-img" src="img/p_raptor.png" alt=""><video id="un-vid" playsinline muted hidden></video><span class="un-lock">🔒</span></div>
+    <h3 class="fx buzlu" id="un-name">Velociraptor</h3>
+    <p id="un-p"></p>
+    <button class="btn wide" id="b-un-go">Dinozorunu seç ▸</button></div>
 </section>
 
 <button class="mute" id="b-mute" aria-label="Sesi aç/kapat">🔊</button>

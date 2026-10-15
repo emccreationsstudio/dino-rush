@@ -206,10 +206,25 @@ for (const sx of [-1, 1]) {
   const geo = new THREE.CylinderGeometry(1.15, 1.15, ROAD_LEN, 14, 1, true, 0, Math.PI);
   geo.rotateZ(Math.PI / 2); geo.rotateY(Math.PI / 2); // yarım silindir: kubbe yukarı, eksen z boyunca
   const b = new THREE.Mesh(geo, bermMat);
-  b.scale.set(1, 0.62, 1); b.position.set(sx * (ROAD_W / 2 + 0.75), -0.02, ROAD_Z);
+  b.scale.set(1, 0.95, 1); b.position.set(sx * (ROAD_W / 2 + 0.8), -0.02, ROAD_Z);
   b.receiveShadow = true; b.castShadow = false; scene.add(b);
 }
+// Bölüm 1: yol kenarında kar yığınları — dinozor 3 şeridin dışına çıkamaz (görsel duvar)
+const BANK_N = 34, BANK_SP = 6.5;
+const bankMat = new THREE.MeshStandardMaterial({ color: "#f3f8fd", roughness: 0.9, metalness: 0 });
+const snowBanks = new THREE.Group(); scene.add(snowBanks);
+for (let i = 0; i < BANK_N; i++) for (const sx of [-1, 1]) {
+  const sd = i * 2 + (sx > 0 ? 1 : 0) + 7;
+  const m = mesh(jitter(new THREE.IcosahedronGeometry(1, 3), 0.16, sd), bankMat, false);
+  const r = (k) => ((Math.sin(sd * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
+  m.scale.set(0.85 + r(1) * 0.35, 0.75 + r(2) * 0.7, 1.7 + r(3) * 1.4);
+  m.position.set(sx * (ROAD_W / 2 + 0.55 + m.scale.x * 0.55 + r(4) * 0.25), 0.05, 0);
+  m.rotation.y = (r(5) - 0.5) * 0.4; m.receiveShadow = true;
+  m.userData.z0 = i * BANK_SP + r(6) * 2.5; snowBanks.add(m);
+}
 function scrollGround(dist) {
+  snowBanks.visible = curTheme === 1;
+  if (snowBanks.visible) for (const m of snowBanks.children) m.position.z = 14 - BANK_N * BANK_SP + ((m.userData.z0 + dist) % (BANK_N * BANK_SP));
   const o = (dist / 8) % 1, o2 = (dist / 16) % 1;
   roadTex.offset.y = o; snowTex.offset.y = o; bermTex.offset.y = o; if (roadTexLive) roadTexLive.offset.y = o2;
   if (curTheme === 2) { SW.roadTex.offset.y = o2; SW.waterTex.offset.y = o; SW.waterTex.offset.x = Math.sin(state.time * 0.3) * 0.02; SW.bankTex.offset.y = o; }
@@ -2445,8 +2460,12 @@ function updateHud() {
   $("prog-me").style.left = p * 100 + "%";
   const mt = Math.ceil(R.meat);
   if ($("food").textContent !== String(mt)) $("food").textContent = mt;
-  const ek = clamp(R.meat / MEAT.max, 0, 1);
+  // ibre: işaretler tüpün %10.4 (dur) ve %42.9'unda (yavaşla) — et değeri parça parça eşlenir
+  const m = clamp(R.meat, 0, MEAT.max);
+  const ek = m <= MEAT.stop ? (m / MEAT.stop) * 0.104 : m <= MEAT.slow ? 0.104 + ((m - MEAT.stop) / (MEAT.slow - MEAT.stop)) * (0.429 - 0.104) : 0.429 + ((m - MEAT.slow) / (MEAT.max - MEAT.slow)) * (1 - 0.429);
   $("en-fill").style.height = (ek * 100).toFixed(1) + "%";
+  const th = $("en-fill").parentNode.clientHeight + "px";
+  if ($("energy").style.getPropertyValue("--th") !== th) $("energy").style.setProperty("--th", th);
   $("en-num").textContent = mt;
   const ec = "energy" + (R.meat <= MEAT.stop + 3 ? " crit" : R.meat <= MEAT.slow ? " low" : "");
   if ($("energy").className !== ec) $("energy").className = ec;
@@ -2479,7 +2498,7 @@ function updateHud() {
 }
 
 // ------------------------------------------------------------------ ekranlar
-const SCREENS = ["scr-load", "scr-title", "scr-story", "scr-map", "scr-chars", "scr-pause", "scr-over", "scr-win"];
+const SCREENS = ["scr-load", "scr-title", "scr-story", "scr-map", "scr-chars", "scr-pause", "scr-over", "scr-win", "scr-unlock"];
 function show(id) { SCREENS.forEach((s) => ($(s).hidden = s !== id)); }
 
 const STORY = [
@@ -2583,11 +2602,37 @@ function win() {
   store.set("best", state.best);
   const un = $("win-unlock");
   if (sw) { un.hidden = false; un.textContent = "🦕 Triceratops yakında katılıyor! Modeli hazır olunca bu bölümün ödülü olacak."; }
-  else if (!state.unlocked.includes("raptor")) {
-    state.unlocked.push("raptor"); store.set("unlocked", state.unlocked);
-    un.hidden = false; un.textContent = "🎉 Yeni dinozor açıldı: Velociraptor! En hızlısı, çift zıplar ve orak pençesiyle mamutları kaçırır.";
-  } else un.hidden = true;
-  $("hud").hidden = true; show("scr-win");
+  else un.hidden = true;
+  $("hud").hidden = true;
+  // Sıralı açılma: her bölüm sonunda sıradaki dinozor (Raptor → Triceratops → Stegosaurus → T-Rex)
+  const nk = UNLOCK_ORDER[LEVEL.n - 1];
+  if (nk && DINOS[nk] && !state.unlocked.includes(nk)) {
+    state.unlocked.push(nk); store.set("unlocked", state.unlocked);
+    showUnlock(nk, $("win-stars").innerHTML); return;
+  }
+  show("scr-win");
+}
+const UNLOCK_ORDER = ["raptor", "trike", "stego", "trex"];
+/** "Yeni dinozor açıldı" ekranı. Web/video/acilis_<dino>.mp4 varsa önce o oynar, sonunda dinozor açılır. */
+function showUnlock(k, starsHtml) {
+  const d = DINOS[k], scr = $("scr-unlock"), st = $("un-stage"), vid = $("un-vid"), img = $("un-img");
+  $("un-stars").innerHTML = starsHtml || "";
+  img.src = d.portrait; $("un-name").textContent = d.name; $("un-p").textContent = d.ability.desc.split(". ").slice(0, 2).join(". ") + ".";
+  scr.classList.remove("done"); st.classList.remove("on", "shake"); img.hidden = false; vid.hidden = true;
+  show("scr-unlock");
+  const reveal = () => {
+    vid.hidden = true; img.hidden = false;
+    st.classList.add("shake"); SFX.food();
+    setTimeout(() => { st.classList.remove("shake"); st.classList.add("on"); SFX.win(); }, 700);
+    setTimeout(() => scr.classList.add("done"), 1500);
+  };
+  // kullanıcının açılış animasyonu (hazır olunca)
+  vid.onerror = null; vid.onended = null; vid.onloadeddata = null;
+  let started = false;
+  vid.onloadeddata = () => { if (started) return; started = true; img.hidden = true; vid.hidden = false; vid.muted = muted; vid.play().catch(() => { vid.muted = true; vid.play().catch(reveal); }); };
+  vid.onended = reveal; vid.onerror = () => { if (!started) { started = true; setTimeout(reveal, 500); } };
+  vid.src = "video/acilis_" + k + ".mp4"; vid.load();
+  setTimeout(() => { if (!started) { started = true; reveal(); } }, 1200);
 }
 
 // düğmeler
@@ -2609,7 +2654,12 @@ $("b-continue").onclick = () => startRun(run.checkpoint);
 $("b-restart").onclick = () => startRun(0);
 $("b-win-map").onclick = () => { state.mode = "menu"; $("sel").style.opacity = 0; renderMap(); show("scr-map"); };
 $("b-win-again").onclick = () => startRun(0);
-$("b-win-next").onclick = () => { if (LEVELS[LEVEL.n + 1]) { state.level = LEVEL.n + 1; startRun(0); } };
+$("b-win-next").onclick = () => { if (LEVELS[LEVEL.n + 1]) { state.level = LEVEL.n + 1; state.mode = "menu"; $("sel").style.opacity = 0; renderChars(); show("scr-chars"); } };
+$("b-un-go").onclick = () => {
+  const k = UNLOCK_ORDER[LEVEL.n - 1]; if (k && DINOS[k]) { state.dinoKey = k; store.set("dino", k); }
+  state.level = LEVELS[LEVEL.n + 1] ? LEVEL.n + 1 : LEVEL.n; state.mode = "menu"; $("sel").style.opacity = 0;
+  renderChars(); show("scr-chars"); const dd = DINO_OBJ[state.dinoKey]; if (dd) dd.roarT = 0;
+};
 $("b-ability").addEventListener("pointerdown", (e) => { e.stopPropagation(); audio(); act("ability"); });
 $("inv").addEventListener("pointerdown", (e) => { const b = e.target.closest("[data-k]"); if (!b) return; e.stopPropagation(); e.preventDefault(); audio(); act("use:" + b.dataset.k); });
 const muteBtn = $("b-mute");
